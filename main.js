@@ -7,7 +7,7 @@ var schedule = require('node-schedule');
 
 // submit flag
 var submit = function (flag) {
-    var command = "curl –L http://people.cs.nctu.edu.tw/~hwcheng/NSFinal/flag.php?ID=13&flag=" + flag.toString();
+    var command = "curl -L http://people.cs.nctu.edu.tw/~hwcheng/NSFinal/flag.php?ID=13&flag=" + flag.toString();
     child = exec(command);
 }
 
