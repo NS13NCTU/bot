@@ -109,7 +109,7 @@ var attackAll = function () {
 };
 // main
 var rule = new schedule.RecurrenceRule();
-rule.minute = 0;
+rule.minute = 30;
 
 program
     .version('0.0.1')
