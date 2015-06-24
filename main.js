@@ -3,6 +3,7 @@ var net = require('net');
 var colors = require('colors');
 var exec = require('child_process').exec;
 var schedule = require('node-schedule');
+var program = require('commander');
 
 
 // submit flag
@@ -85,12 +86,25 @@ var attackSSP = function (team) {
     });
 };
 
-var rule = new schedule.RecurrenceRule();
-rule.minute = 0;
-var j = schedule.scheduleJob(rule, function(){
+var attackAll = function () {
     console.log('====== START ATTACKING ====='.red);
     for (i = 0; i < 36; i++) {
         attackPMC(i);
         attackSSP(i);
     }
-});
+};
+
+// main
+
+program
+    .version('0.0.1')
+    .option('-n, --now', 'Attack all attack NOW!!')
+    .parse(process.argv);
+
+if (program.now) {
+    attackAll();
+} else {
+    var rule = new schedule.RecurrenceRule();
+    rule.minute = 0;
+    var j = schedule.scheduleJob(rule, attackAll);
+}
