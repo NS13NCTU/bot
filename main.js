@@ -7,8 +7,12 @@ var schedule = require('node-schedule');
 
 // submit flag
 var submit = function (flag) {
-    var command = "curl -L http://people.cs.nctu.edu.tw/~hwcheng/NSFinal/flag.php?ID=13&flag=" + flag.toString();
-    child = exec(command);
+    var url = "http://people.cs.nctu.edu.tw/~hwcheng/NSFinal/process.php?ID=13&key=" + flag.toString();
+    var req = http.request(url);
+    req.on('error', function(e) {
+      console.log('SUBMIT ERROR: '.red + e.message);
+    });
+    req.end();
 }
 
 var parseFlag = function (regex, data) {
@@ -82,7 +86,7 @@ var attackSSP = function (team) {
 };
 
 var rule = new schedule.RecurrenceRule();
-rule.minute = 30;
+rule.minute = 0;
 var j = schedule.scheduleJob(rule, function(){
     console.log('====== START ATTACKING ====='.red);
     for (i = 0; i < 36; i++) {
