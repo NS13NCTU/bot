@@ -75,10 +75,14 @@ var attackSSP = function (team) {
             submit(result);
         }
     });
+
+    conn.on('error', function(e) {
+      console.log('ERROR: '.red + e.message);
+    });
 };
 
 var rule = new schedule.RecurrenceRule();
-rule.minute = 0;
+rule.minute = 30;
 var j = schedule.scheduleJob(rule, function(){
     console.log('====== START ATTACKING ====='.red);
     for (i = 0; i < 36; i++) {
