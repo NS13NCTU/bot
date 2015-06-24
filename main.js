@@ -95,16 +95,24 @@ var attackAll = function () {
 };
 
 // main
+var rule = new schedule.RecurrenceRule();
+rule.minute = 0;
 
 program
     .version('0.0.1')
     .option('-n, --now', 'Attack all attack NOW!!')
+    .option('-m, --minute <n>', 'The minute to attack at every hour', parseInt)
     .parse(process.argv);
+
+if (program.minute) {
+    if (typeof program.minute === 'number') {
+        rule.minute = program.minute;
+        console.log('Attack at __:' + program.minute);
+    }
+}
 
 if (program.now) {
     attackAll();
 } else {
-    var rule = new schedule.RecurrenceRule();
-    rule.minute = 0;
     var j = schedule.scheduleJob(rule, attackAll);
 }
