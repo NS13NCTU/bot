@@ -111,7 +111,7 @@ var attackAll = function () {
 };
 // main
 var rule = new schedule.RecurrenceRule();
-rule.minute = 55;
+rule.minute = [5, 15, 25, 35, 45, 55];
 
 program
     .version('0.0.1')
